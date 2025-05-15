@@ -1,0 +1,24 @@
+{
+  "name": "curl-parser-ts",
+  "version": "0.1.0",
+  "description": "package to parse curl commands and return method, url, data, params",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hp77-creator/curl-parser-ts.git"
+  },
+  "keywords": [
+    "curl",
+    "parser",
+    "typescript"
+  ],
+  "author": "Himanshu Pandey (hp)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/hp77-creator/curl-parser-ts/issues"
+  },
+  "homepage": "https://github.com/hp77-creator/curl-parser-ts#readme"
+}
