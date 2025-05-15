@@ -54,14 +54,37 @@ function parseCurlCommand(curlCommand: string): CurlParseResult {
   let formDataEntries: [string, string][] | null = null;
   let urlFound = false;
 
-  for (let i = tokens.length - 1; i >= 0; i--) {
+  // First try to find URL after specific flags
+  for (let i = 0; i < tokens.length - 2; i++) {
     const token = tokens[i];
-    if (token.type === 'URL' || (token.type === 'ARGUMENT' && (
-      URL_HTTP_REGEX.test(token.value) || URL_DOMAIN_REGEX.test(token.value)
-    ))) {
-      result.url = token.value;
-      urlFound = true;
-      break;
+    const nextToken = tokens[i + 1];
+    const urlToken = tokens[i + 2];
+    
+    if (token.type === 'OPTION' && 
+        (token.value === '--request' || token.value === '-X' || token.value === '--location' || token.value === '-L') && 
+        nextToken && nextToken.type === 'ARGUMENT') {
+      
+      if (urlToken && (urlToken.type === 'URL' || 
+          (urlToken.type === 'ARGUMENT' && 
+           (URL_HTTP_REGEX.test(urlToken.value) || URL_DOMAIN_REGEX.test(urlToken.value))))) {
+        result.url = urlToken.value;
+        urlFound = true;
+        break;
+      }
+    }
+  }
+
+  // If URL not found with the above method, fall back to the current approach
+  if (!urlFound) {
+    for (let i = tokens.length - 1; i >= 0; i--) {
+      const token = tokens[i];
+      if (token.type === 'URL' || (token.type === 'ARGUMENT' && (
+        URL_HTTP_REGEX.test(token.value) || URL_DOMAIN_REGEX.test(token.value)
+      ))) {
+        result.url = token.value;
+        urlFound = true;
+        break;
+      }
     }
   }
 

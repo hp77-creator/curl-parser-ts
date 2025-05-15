@@ -637,8 +637,41 @@ cases.push({
   }
 })
 
-
-
+// complex curl command with multiple headers and query parameters
+cases.push({
+  input: `curl --location --request GET 'https://google.com/api/v1/data-replay/web/api/google?page=0' --header 'accept: */*' --header 'accept-language: en-US,en;q=0.9,en-IN;q=0.8' --header 'authorization: Bearer token123' --header 'priority: u=1, i' --header 'referer: https://data-replay.gg.com/api/v1/dr/web/executions' --header 'sec-ch-ua: "Microsoft Edge";v="135", "Not-A.Brand";v="8", "Chromium";v="135"' --header 'sec-ch-ua-mobile: ?0' --header 'sec-ch-ua-platform: "Windows"' --header 'sec-fetch-dest: empty' --header 'sec-fetch-mode: cors' --header 'sec-fetch-site: same-origin' --header 'user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0'`,
+  output: {
+    method: 'GET',
+    url: 'https://google.com/api/v1/data-replay/web/api/google',
+    headers: {
+      'accept': '*/*',
+      'accept-language': 'en-US,en;q=0.9,en-IN;q=0.8',
+      'authorization': 'Bearer token123',
+      'priority': 'u=1, i',
+      'referer': 'https://data-replay.gg.com/api/v1/dr/web/executions',
+      'sec-ch-ua': '"Microsoft Edge";v="135", "Not-A.Brand";v="8", "Chromium";v="135"',
+      'sec-ch-ua-mobile': '?0',
+      'sec-ch-ua-platform': '"Windows"',
+      'sec-fetch-dest': 'empty',
+      'sec-fetch-mode': 'cors',
+      'sec-fetch-site': 'same-origin',
+      'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0'
+    },
+    query: {
+      'page': '0'
+    },
+    data: null,
+    auth: null,
+    cookies: {},
+    timeout: null,
+    proxy: null,
+    followRedirects: true,
+    insecure: false,
+    compressed: false,
+    formData: null,
+    multipartFormData: null
+  }
+})
 
 cases.forEach(function(c){
   const out = parseCurlCommand(c.input)
