@@ -1,0 +1,17 @@
+[
+  {
+    "path": "dist/index.js",
+    "limit": "10 KB",
+    "name": "CommonJS build"
+  },
+  {
+    "path": "dist/index.esm.js",
+    "limit": "10 KB",
+    "name": "ESM build"
+  },
+  {
+    "path": "dist/bundle.js",
+    "limit": "10 KB",
+    "name": "Bundled build"
+  }
+]

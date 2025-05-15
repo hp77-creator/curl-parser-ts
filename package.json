@@ -2,9 +2,26 @@
   "name": "curl-parser-ts",
   "version": "0.1.0",
   "description": "package to parse curl commands and return method, url, data, params",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "module": "dist/esm/index.esm.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.esm.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc && npm run build:esm",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "test": "node test/parse-curl.test.js",
+    "prepublishOnly": "npm run build",
+    "benchmark": "node test/benchmark.js",
+    "memory-benchmark": "node --expose-gc test/memory-benchmark.js",
+    "feature-comparison": "node test/feature-comparison.js",
+    "bundle-size": "npx esbuild src/index.ts --bundle --outfile=dist/bundle.js --format=esm && du -h dist/bundle.js && gzip -c dist/bundle.js | wc -c",
+    "size": "size-limit"
   },
   "repository": {
     "type": "git",
@@ -22,7 +39,16 @@
   },
   "homepage": "https://github.com/hp77-creator/curl-parser-ts#readme",
   "devDependencies": {
+    "@size-limit/preset-small-lib": "^8.2.6",
+    "benchmark": "^2.1.4",
+    "parse-curl": "^0.2.6",
+    "size-limit": "^8.2.6",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
-  }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ]
 }
