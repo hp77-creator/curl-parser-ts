@@ -418,6 +418,228 @@ cases.push({
   }
 })
 
+// Query parameters testcase
+cases.push({
+  input: 'curl "https://api.sloths.com/search?type=lazy&age=5"',
+  output: {
+    method: 'GET',
+    url: 'https://api.sloths.com/search',
+    headers: {},
+    query: {
+      'type': 'lazy',
+      'age': '5'
+    },
+    data: null,
+    auth: null,
+    cookies: {},
+    timeout: null,
+    proxy: null,
+    followRedirects: false,
+    insecure: false,
+    compressed: false,
+    formData: null,
+    multipartFormData: null
+  }
+})
+
+// multiple headers with same name
+
+cases.push({
+  input: 'curl -H "Accept: text/html" -H "Accept: application/json" https://api.sloths.com',
+  output: {
+    method: 'GET',
+    url: 'https://api.sloths.com',
+    headers: {
+      'Accept': 'application/json'  // Last one wins
+    },
+    query: {},
+    data: null,
+    auth: null,
+    cookies: {},
+    timeout: null,
+    proxy: null,
+    followRedirects: false,
+    insecure: false,
+    compressed: false,
+    formData: null,
+    multipartFormData: null
+  }
+})
+
+
+// request with timeout
+cases.push({
+  input: 'curl --connect-timeout 30 https://api.sloths.com',
+  output: {
+    method: 'GET',
+    url: 'https://api.sloths.com',
+    headers: {},
+    query: {},
+    data: null,
+    auth: null,
+    cookies: {},
+    timeout: '30',
+    proxy: null,
+    followRedirects: false,
+    insecure: false,
+    compressed: false,
+    formData: null,
+    multipartFormData: null
+  }
+})
+
+// with follow-redirects
+
+cases.push({
+  input: 'curl -L https://api.sloths.com',
+  output: {
+    method: 'GET',
+    url: 'https://api.sloths.com',
+    headers: {},
+    query: {},
+    data: null,
+    auth: null,
+    cookies: {},
+    timeout: null,
+    proxy: null,
+    followRedirects: true,
+    insecure: false,
+    compressed: false,
+    formData: null,
+    multipartFormData: null
+  }
+})
+
+// insecure 
+cases.push({
+  input: 'curl -k https://api.sloths.com',
+  output: {
+    method: 'GET',
+    url: 'https://api.sloths.com',
+    headers: {},
+    query: {},
+    data: null,
+    auth: null,
+    cookies: {},
+    timeout: null,
+    proxy: null,
+    followRedirects: false,
+    insecure: true,
+    compressed: false,
+    formData: null,
+    multipartFormData: null
+  }
+})
+
+// multiple cookies 
+cases.push({
+  input: 'curl -b "session=abc123; theme=dark; preferences=font%3DArial" https://api.sloths.com',
+  output: {
+    method: 'GET',
+    url: 'https://api.sloths.com',
+    headers: {},
+    query: {},
+    data: null,
+    auth: null,
+    cookies: {
+      'session': 'abc123',
+      'theme': 'dark',
+      'preferences': 'font=Arial'
+    },
+    timeout: null,
+    proxy: null,
+    followRedirects: false,
+    insecure: false,
+    compressed: false,
+    formData: null,
+    multipartFormData: null
+  }
+})
+
+// multipart-form data
+cases.push({
+  input: 'curl -F "profile=@photo.jpg" -F "name=Sleepy" https://api.sloths.com/upload',
+  output: {
+    method: 'POST',
+    url: 'https://api.sloths.com/upload',
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    },
+    query: {},
+    data: null,
+    auth: null,
+    cookies: {},
+    timeout: null,
+    proxy: null,
+    followRedirects: false,
+    insecure: false,
+    compressed: false,
+    formData: null,
+    multipartFormData: {
+      'profile': '@photo.jpg',
+      'name': 'Sleepy'
+    }
+  }
+})
+
+// JSON data
+cases.push({
+  input: 'curl -X POST -H "Content-Type: application/json" -d \'{"name":"Sleepy","type":"ThreeToed"}\' https://api.sloths.com/sloths',
+  output: {
+    method: 'POST',
+    url: 'https://api.sloths.com/sloths',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    query: {},
+    data: '{"name":"Sleepy","type":"ThreeToed"}',
+    auth: null,
+    cookies: {},
+    timeout: null,
+    proxy: null,
+    followRedirects: false,
+    insecure: false,
+    compressed: false,
+    formData: null,
+    multipartFormData: null
+  }
+})
+
+// mixture of multiple scenarios
+cases.push({
+  input: 'curl -X POST -H "Accept: application/json" -H "Authorization: Bearer token123" -b "session=abc" -L -k --compressed -d "data=test" "https://api.sloths.com/update?id=123"',
+  output: {
+    method: 'POST',
+    url: 'https://api.sloths.com/update',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': 'Bearer token123',
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Accept-Encoding': 'deflate, gzip'
+    },
+    query: {
+      'id': '123'
+    },
+    data: 'data=test',
+    auth: null,
+    cookies: {
+      'session': 'abc'
+    },
+    timeout: null,
+    proxy: null,
+    followRedirects: true,
+    insecure: true,
+    compressed: true,
+    formData: {
+      'data': 'test'
+    },
+    multipartFormData: null
+  }
+})
+
+
+
+
 cases.forEach(function(c){
   const out = parseCurlCommand(c.input)
 
