@@ -26,3 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive test suite
 - Performance benchmarks against parse-curl
 - Memory usage benchmarks
+
+## [0.2.0] - 2025-05-15
+
+### Added
+
+- Handle quoted url in a curl string
