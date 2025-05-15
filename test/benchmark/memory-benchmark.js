@@ -6,7 +6,7 @@
  */
 
 const parseCurl = require('parse-curl');
-const { parseCurlCommand } = require('../dist');
+const { parseCurlCommand } = require('../../dist');
 
 // Ensure btoa is defined for Node.js environment
 global.btoa = str => Buffer.from(str).toString('base64');

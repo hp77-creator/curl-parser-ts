@@ -1,0 +1,26 @@
+
+> curl-parser-ts@0.1.0 memory-benchmark
+> node --expose-gc test/memory-benchmark.js
+
+Running memory benchmark with 10000 iterations for each library...
+Each iteration processes 7 different curl commands.
+Total curl commands processed: 70000
+
+Running memory benchmark for parse-curl...
+Initial memory usage:  { rss: '38.27 MB', heapTotal: '5.70 MB', heapUsed: '3.23 MB' }
+Final memory usage:  { rss: '47.06 MB', heapTotal: '5.95 MB', heapUsed: '4.09 MB' }
+Memory increase:  { rss: '8.80 MB', heapTotal: '0.25 MB', heapUsed: '0.87 MB' }
+Time taken: 128.43 ms
+
+Running memory benchmark for curl-parser-ts...
+Initial memory usage:  { rss: '47.14 MB', heapTotal: '5.95 MB', heapUsed: '3.34 MB' }
+Final memory usage:  { rss: '49.08 MB', heapTotal: '5.95 MB', heapUsed: '3.90 MB' }
+Memory increase:  { rss: '1.94 MB', heapTotal: '0.00 MB', heapUsed: '0.56 MB' }
+Time taken: 204.51 ms
+
+=== COMPARISON ===
+Time: curl-parser-ts is 0.63x slower than parse-curl
+Memory: curl-parser-ts uses 1.56x more memory than parse-curl
+
+Note: For more accurate memory measurements, run with:
+node --expose-gc test/memory-benchmark.js

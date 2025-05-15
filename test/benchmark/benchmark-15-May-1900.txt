@@ -1,0 +1,25 @@
+
+> curl-parser-ts@0.1.0 benchmark
+> node test/benchmark.js
+
+parse-curl: curl http://api.example.com x 2,331,830 ops/sec ±1.90% (93 runs sampled)
+curl-parser-ts: curl http://api.example.com x 5,237,724 ops/sec ±0.09% (94 runs sampled)
+parse-curl: curl -I https://api.example.co... x 1,636,171 ops/sec ±0.21% (95 runs sampled)
+curl-parser-ts: curl -I https://api.example.co... x 3,989,040 ops/sec ±1.13% (99 runs sampled)
+parse-curl: curl -H "Accept: application/j... x 667,128 ops/sec ±1.26% (95 runs sampled)
+curl-parser-ts: curl -H "Accept: application/j... x 620,117 ops/sec ±1.71% (100 runs sampled)
+parse-curl: curl -u username:password http... x 832,609 ops/sec ±1.50% (93 runs sampled)
+curl-parser-ts: curl -u username:password http... x 769,954 ops/sec ±1.15% (100 runs sampled)
+parse-curl: curl -d "param1=value1&param2=... x 1,124,603 ops/sec ±0.98% (95 runs sampled)
+curl-parser-ts: curl -d "param1=value1&param2=... x 473,588 ops/sec ±0.58% (99 runs sampled)
+parse-curl: curl -X POST -H "Content-Type:... x 499,970 ops/sec ±0.47% (95 runs sampled)
+curl-parser-ts: curl -X POST -H "Content-Type:... x 369,387 ops/sec ±0.55% (95 runs sampled)
+parse-curl: curl -X POST -H "Accept: appli... x 256,205 ops/sec ±0.52% (99 runs sampled)
+curl-parser-ts: curl -X POST -H "Accept: appli... x 120,476 ops/sec ±0.16% (93 runs sampled)
+Fastest is curl-parser-ts: curl http://api.example.com
+
+Average operations per second:
+parse-curl: 1049787.82 ops/sec
+curl-parser-ts: 1654326.73 ops/sec
+
+curl-parser-ts is 57.59% faster than parse-curl on average
