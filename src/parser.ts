@@ -2,23 +2,45 @@ import { CurlParseResult } from "./types";
 import { tokenizeFromCurl } from "./tokenizer";
 import { HEADER_FLAG_MAPPINGS, DATA_FLAG_CONTENT_TYPES, COOKIE_FLAGS, TIMEOUT_FLAGS, REDIRECT_FLAGS, SECURITY_FLAGS } from "./constants";
 
+// Precompile regular expressions for better performance
+const URL_HTTP_REGEX = /^https?:\/\//;
+const URL_DOMAIN_REGEX = /^[^.]+\.[^.]+/;
+const HEADER_REGEX = /^([^:]+):\s*(.*)$/;
+const FORM_DATA_REGEX = /^([^=]+)=(.*)$/;
+const METHOD_REGEX = /^-X([A-Z]+)$/;
 
+// Common string constants to reduce allocations
+const GET = 'GET';
+const POST = 'POST';
+const HEAD = 'HEAD';
+const CONTENT_TYPE = 'Content-Type';
+const ACCEPT_ENCODING = 'Accept-Encoding';
+const AUTHORIZATION = 'Authorization';
+const DEFLATE_GZIP = 'deflate, gzip';
+const BASIC_PREFIX = 'Basic ';
+const EMPTY_STRING = '';
 
+/**
+ * Parse a curl command string into a structured object
+ */
 function parseCurlCommand(curlCommand: string): CurlParseResult {
-  const dataValues: string[] = [];
-  const formDataEntries: Array<[string, string]> = [];
+  if (!curlCommand) {
+    return createEmptyResult();
+  }
+
   const tokens = tokenizeFromCurl(curlCommand);
+  if (!tokens.length) {
+    return createEmptyResult();
+  }
 
-
-  // Initialize result object with defaults
   const result: CurlParseResult = {
-    url: '',
-    method: 'GET',
-    headers: {} as Record<string, string>,
-    query: {} as Record<string, string>,
+    url: EMPTY_STRING,
+    method: GET,
+    headers: Object.create(null), // Faster than {}
+    query: Object.create(null),
     data: null,
     auth: null,
-    cookies: {} as Record<string, string>,
+    cookies: Object.create(null),
     timeout: null,
     proxy: null,
     followRedirects: false,
@@ -28,13 +50,14 @@ function parseCurlCommand(curlCommand: string): CurlParseResult {
     multipartFormData: null,
   };
 
-  // Process tokens
+  let dataValues: string[] | null = null;
+  let formDataEntries: [string, string][] | null = null;
   let urlFound = false;
+
   for (let i = tokens.length - 1; i >= 0; i--) {
     const token = tokens[i];
     if (token.type === 'URL' || (token.type === 'ARGUMENT' && (
-      token.value.match(/^https?:\/\//) ||
-      token.value.match(/^[^.]+\.[^.]+/)
+      URL_HTTP_REGEX.test(token.value) || URL_DOMAIN_REGEX.test(token.value)
     ))) {
       result.url = token.value;
       urlFound = true;
@@ -49,157 +72,208 @@ function parseCurlCommand(curlCommand: string): CurlParseResult {
     if (token.type === 'URL') {
       continue;
     }
+    
     if (token.type === 'OPTION') {
-      switch (true) {
-        case token.value === '-I':
-          result.method = 'HEAD';
-          break;
-        case token.value === '--compressed':
-          result.compressed = true;
-          if (!result.headers['Accept-Encoding']) {
-            result.headers['Accept-Encoding'] = 'deflate, gzip';
+      const tokenValue = token.value;
+      
+      if (tokenValue === '-I') {
+        result.method = HEAD;
+      }
+      else if (tokenValue === '--compressed') {
+        result.compressed = true;
+        if (!result.headers[ACCEPT_ENCODING]) {
+          result.headers[ACCEPT_ENCODING] = DEFLATE_GZIP;
+        }
+      }
+      else if (METHOD_REGEX.test(tokenValue)) {
+        result.method = tokenValue.substring(2).toUpperCase();
+      }
+      else if (tokenValue === '-X' || tokenValue === '--request') {
+        if (nextToken) {
+          result.method = nextToken.value.toUpperCase();
+          i++;
+        }
+      }
+      else if (tokenValue in HEADER_FLAG_MAPPINGS) {
+        if (nextToken) {
+          const headerName = HEADER_FLAG_MAPPINGS[tokenValue];
+          result.headers[headerName] = nextToken.value;
+          i++;
+        }
+      }
+      else if (tokenValue === '-H' || tokenValue === '--header') {
+        if (nextToken) {
+          const headerMatch = HEADER_REGEX.exec(nextToken.value);
+          if (headerMatch) {
+            const name = headerMatch[1];
+            const value = headerMatch[2];
+            result.headers[name] = value;
           }
-          break;
-        // for cases where method is passed like this -XPUT 
-        case /^-X[A-Z]+$/.test(token.value):
-          result.method = token.value.substring(2).toUpperCase();
-          break;
-        case token.value === '-X' || token.value === '--request':
-          if (nextToken) {
-            result.method = nextToken.value.toUpperCase();
-            i++;
+          i++;
+        }
+      }
+      else if (tokenValue in DATA_FLAG_CONTENT_TYPES) {
+        if (nextToken) {
+          const defaultContentType = DATA_FLAG_CONTENT_TYPES[tokenValue];
+          // Only set Content-Type if not already set by -H flag
+          if (!result.headers[CONTENT_TYPE]) {
+            result.headers[CONTENT_TYPE] = defaultContentType;
           }
-          break;
-        // for user-agent and other header flags
-        case token.value in HEADER_FLAG_MAPPINGS:
-          if (nextToken) {
-            const headerName = HEADER_FLAG_MAPPINGS[token.value];
-            result.headers[headerName] = nextToken.value;
-            i++;
-          }
-          break;
-
-        case token.value === '-H' || token.value === '--header':
-          if (nextToken) {
-            const headerMatch = nextToken.value.match(/^([^:]+):\s*(.*)$/);
-            if (headerMatch) {
-              const [, name, value] = headerMatch;
-              result.headers[name] = value;
+          
+          const contentType = result.headers[CONTENT_TYPE];
+          
+          if (contentType === 'multipart/form-data') {
+            if (!result.multipartFormData) {
+              result.multipartFormData = Object.create(null) as Record<string, string>;
             }
-            i++; 
-          }
-          break;
-
-        // for mapping different kinds of data
-        case token.value in DATA_FLAG_CONTENT_TYPES:
-          if (nextToken) {
-            const defaultContentType = DATA_FLAG_CONTENT_TYPES[token.value];
-            // Only set Content-Type if not already set by -H flag
-            if (!result.headers['Content-Type']) {
-              result.headers['Content-Type'] = defaultContentType;
+            const match = FORM_DATA_REGEX.exec(nextToken.value);
+            if (match) {
+              const key = match[1];
+              const value = match[2];
+              result.multipartFormData[key] = value;
+            }
+          } else {
+            if (!dataValues) {
+              dataValues = [];
             }
             
-            const contentType = result.headers['Content-Type'];
-            if (contentType === 'multipart/form-data') {
-              if (!result.multipartFormData) {
-                result.multipartFormData = {};
+            dataValues.push(nextToken.value);
+            
+            // Only try to parse as form data if content type is url-encoded
+            // and the data looks like form data (contains = and no {)
+            if (contentType === 'application/x-www-form-urlencoded' && 
+                nextToken.value.includes('=') && 
+                !nextToken.value.startsWith('{')) {
+              
+              if (!formDataEntries) {
+                formDataEntries = [];
               }
-              const match = nextToken.value.match(/^([^=]+)=(.*)$/);
-              if (match) {
-                const [, key, value] = match;
-                result.multipartFormData[key] = value;
-              }
-            } else {
-              dataValues.push(nextToken.value);
-              // Only try to parse as form data if content type is url-encoded
-              // and the data looks like form data (contains = and no {)
-              if (contentType === 'application/x-www-form-urlencoded' && 
-                  nextToken.value.includes('=') && 
-                  !nextToken.value.startsWith('{')) {
-                nextToken.value.split('&').forEach(pair => {
-                  const [key, value] = pair.split('=');
+              
+              const pairs = nextToken.value.split('&');
+              for (let j = 0; j < pairs.length; j++) {
+                const pair = pairs[j];
+                const eqIndex = pair.indexOf('=');
+                if (eqIndex !== -1) {
+                  const key = pair.substring(0, eqIndex);
+                  const value = eqIndex + 1 < pair.length ? pair.substring(eqIndex + 1) : EMPTY_STRING;
                   if (key) {
-                    formDataEntries.push([key, value || '']);
+                    formDataEntries.push([key, value]);
                   }
-                });
+                }
               }
             }
-            result.method = result.method === 'GET' ? 'POST' : result.method;
-            i++;
           }
-          break;
-
-        case token.value === '-u' || token.value === '--user':
-          if (nextToken) {
-            result.auth = nextToken.value;
-            result.headers['Authorization'] = `Basic ${btoa(nextToken.value)}`;
-            i++;
+          
+          // Set method to POST if it's currently GET
+          if (result.method === GET) {
+            result.method = POST;
           }
-          break;
-
-          case token.value in COOKIE_FLAGS:
-            if (nextToken) {
-              // Parse cookie string into object
-              nextToken.value.split(';').forEach(cookie => {
-                const [key, value] = cookie.split('=');
-                if (key) {
-                  if (!result.cookies) {
-                    result.cookies = {};
-                  }
-                  const decodedKey = key.trim();
-                  const decodedValue = value ? decodeURIComponent(value.trim()) : '';
-                  result.cookies[decodedKey] = decodedValue;
-                }
-              });
-              i++; // Skip the next token
-            }
-            break;
-          case token.value in TIMEOUT_FLAGS:
-            if (nextToken) {
-              result.timeout = nextToken.value;
-              i++;
-            }
-            break;
           
-          case token.value in REDIRECT_FLAGS:
-            result.followRedirects = true;
-            break;
-          
-          case token.value in SECURITY_FLAGS:
-            result.insecure = true;
-            break;
+          i++;
+        }
+      }
+      else if (tokenValue === '-u' || tokenValue === '--user') {
+        if (nextToken) {
+          result.auth = nextToken.value;
+          result.headers[AUTHORIZATION] = BASIC_PREFIX + btoa(nextToken.value);
+          i++;
+        }
+      }
+      else if (tokenValue in COOKIE_FLAGS) {
+        if (nextToken) {
+          const cookies = nextToken.value.split(';');
+          for (let j = 0; j < cookies.length; j++) {
+            const cookie = cookies[j];
+            const eqIndex = cookie.indexOf('=');
+            if (eqIndex !== -1) {
+              const key = cookie.substring(0, eqIndex).trim();
+              if (key) {
+                const value = eqIndex + 1 < cookie.length ? 
+                  decodeURIComponent(cookie.substring(eqIndex + 1).trim()) : EMPTY_STRING;
+                result.cookies[key] = value;
+              }
+            }
+          }
+          i++;
+        }
+      }
+      else if (tokenValue in TIMEOUT_FLAGS) {
+        if (nextToken) {
+          result.timeout = nextToken.value;
+          i++;
+        }
+      }
+      else if (tokenValue in REDIRECT_FLAGS) {
+        result.followRedirects = true;
+      }
+      else if (tokenValue in SECURITY_FLAGS) {
+        result.insecure = true;
       }
     }
   }
 
-  // Extra processing (like parsing query params from URL)
-  if (result.url.includes('?')) {
-    const [baseUrl, queryString] = result.url.split('?');
-    result.url = baseUrl;
-
-    // Parse query parameters
-    queryString.split('&').forEach(pair => {
-      const [key, value] = pair.split('=');
-      if (key) {
-        result.query[decodeURIComponent(key)] = value ? decodeURIComponent(value) : '';
+  const queryIndex = result.url.indexOf('?');
+  if (queryIndex !== -1) {
+    const queryString = result.url.substring(queryIndex + 1);
+    result.url = result.url.substring(0, queryIndex);
+    
+    const pairs = queryString.split('&');
+    for (let i = 0; i < pairs.length; i++) {
+      const pair = pairs[i];
+      const eqIndex = pair.indexOf('=');
+      if (eqIndex !== -1) {
+        const key = pair.substring(0, eqIndex);
+        if (key) {
+          try {
+            const decodedKey = decodeURIComponent(key);
+            const value = eqIndex + 1 < pair.length ? 
+              decodeURIComponent(pair.substring(eqIndex + 1)) : EMPTY_STRING;
+            result.query[decodedKey] = value;
+          } catch (e) {
+            result.query[key] = eqIndex + 1 < pair.length ? 
+              pair.substring(eqIndex + 1) : EMPTY_STRING;
+          }
+        }
       }
-    });
+    }
   }
-  if (dataValues.length > 0) {
+
+  if (dataValues && dataValues.length > 0) {
     result.data = dataValues.join('&');
     
-    // Only set formData for url-encoded content type
-    if (result.headers['Content-Type'] === 'application/x-www-form-urlencoded') {
-      result.formData = formDataEntries.reduce((acc, [key, value]) => {
-        acc[key] = value;
-        return acc;
-      }, {} as Record<string, string>);
+    if (formDataEntries && formDataEntries.length > 0 && 
+        result.headers[CONTENT_TYPE] === 'application/x-www-form-urlencoded') {
+      result.formData = Object.create(null) as Record<string, string>;
+      for (let i = 0; i < formDataEntries.length; i++) {
+        const [key, value] = formDataEntries[i];
+        result.formData[key] = value;
+      }
     }
   }
 
   return result;
 }
 
-
+/**
+ * Create an empty result object
+ */
+function createEmptyResult(): CurlParseResult {
+  return {
+    url: EMPTY_STRING,
+    method: GET,
+    headers: Object.create(null),
+    query: Object.create(null),
+    data: null,
+    auth: null,
+    cookies: Object.create(null),
+    timeout: null,
+    proxy: null,
+    followRedirects: false,
+    insecure: false,
+    compressed: false,
+    formData: null,
+    multipartFormData: null,
+  };
+}
 
 export { parseCurlCommand };

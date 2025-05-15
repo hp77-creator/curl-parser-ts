@@ -1,47 +1,69 @@
 import { Token, TokenizerState } from "./types";
 
-function tokenizeFromCurl(curlCommand: string): Token[] {
-    const command = curlCommand.trim().replace(/^\s*curl\s+/, '');
+// Precompile regex for URL detection for better performance
+const URL_REGEX = /^(https?:\/\/[^\s]+)/;
 
+function tokenizeFromCurl(curlCommand: string): Token[] {
+    if (!curlCommand) return [];
+    
+    let startIndex = 0;
+    const len = curlCommand.length;
+    
+    // Skip leading whitespace
+    while (startIndex < len && (curlCommand[startIndex] === ' ' || curlCommand[startIndex] === '\t' || curlCommand[startIndex] === '\n')) {
+        startIndex++;
+    }
+    
+    // Skip "curl" prefix if present
+    if (startIndex + 4 <= len && curlCommand.substring(startIndex, startIndex + 4).toLowerCase() === 'curl') {
+        startIndex += 4;
+        // Skip whitespace after "curl"
+        while (startIndex < len && (curlCommand[startIndex] === ' ' || curlCommand[startIndex] === '\t' || curlCommand[startIndex] === '\n')) {
+            startIndex++;
+        }
+    }
+    
     const tokens: Token[] = [];
     let currentToken = '';
     let currentTokenRaw = '';
     let currentType: Token['type'] | null = null;
     let state: TokenizerState = 'INITIAL';
+    
+    let i = startIndex;
 
-    let i = 0;
-
-    while (i < command.length) {
-        const char = command[i];
-        const nextChar = command[i+1] || '';
+    while (i < len) {
+        const char = curlCommand[i];
+        const nextChar = i + 1 < len ? curlCommand[i + 1] : '';
 
         switch (state) {
             case 'INITIAL':
-                if (char == ' ' || char == '\t' || char == '\n') {
+                if (char === ' ' || char === '\t' || char === '\n') {
                     i++;
                     continue;
-                } else if (char == '-') {
+                } else if (char === '-') {
                     currentType = 'OPTION';
                     currentToken = char;
                     currentTokenRaw = char;
                     state = 'OPTION';
-                } else if (char == "'" || char == '"') {
+                } else if (char === "'" || char === '"') {
                     currentToken = '';
                     currentTokenRaw = char;
                     currentType = 'ARGUMENT';
                     state = char === "'" ? 'QUOTE_SINGLE' : 'QUOTE_DOUBLE';
                 } else {
-                    const remaining = command.substring(i);
-                    const urlMatch = remaining.match(/^(https?:\/\/[^\s]+)/);
+                    // Check for URL pattern
+                    const remaining = curlCommand.substring(i);
+                    const urlMatch = URL_REGEX.exec(remaining);
                     
                     if (urlMatch) {
                         // Found a URL, consume it entirely and push immediately
+                        const url = urlMatch[1];
                         tokens.push({
                             type: 'URL',
-                            value: urlMatch[1],
-                            raw: urlMatch[1]
+                            value: url,
+                            raw: url
                         });
-                        i += urlMatch[1].length - 1; // -1 because loop will increment i
+                        i += url.length - 1; // -1 because loop will increment i
                         state = 'INITIAL';
                         // Clear any current token data since we've pushed directly
                         currentToken = '';
@@ -72,20 +94,21 @@ function tokenizeFromCurl(curlCommand: string): Token[] {
                 }
                 break;
             
-                case 'ARGUMENT':
-                    if (char === ' ' || char === '\t' || char === '\n') {
-                        // End of argument
-                        tokens.push({ type: currentType!, value: currentToken, raw: currentTokenRaw });
-                        currentToken = '';
-                        currentTokenRaw = '';
-                        currentType = null;
-                        state = 'INITIAL';
-                    } else {
-                        // Continue argument
-                        currentToken += char;
-                        currentTokenRaw += char;
-                    }
-                    break;
+            case 'ARGUMENT':
+                if (char === ' ' || char === '\t' || char === '\n') {
+                    // End of argument
+                    tokens.push({ type: currentType!, value: currentToken, raw: currentTokenRaw });
+                    currentToken = '';
+                    currentTokenRaw = '';
+                    currentType = null;
+                    state = 'INITIAL';
+                } else {
+                    // Continue argument
+                    currentToken += char;
+                    currentTokenRaw += char;
+                }
+                break;
+                
             case 'QUOTE_SINGLE':
                 if (char === "'") {
                     // End of single quoted string
@@ -105,6 +128,7 @@ function tokenizeFromCurl(curlCommand: string): Token[] {
                     currentTokenRaw += char;
                 }
                 break;
+                
             case 'QUOTE_DOUBLE':
                 if (char === '"') {
                     // End of double quoted string
@@ -132,14 +156,14 @@ function tokenizeFromCurl(curlCommand: string): Token[] {
                 state = currentType === 'ARGUMENT' ? 'ARGUMENT' : 
                         (currentTokenRaw[0] === "'" ? 'QUOTE_SINGLE' : 'QUOTE_DOUBLE');
                 break;
-
         }
         i++;
     }
 
+    // Add any remaining token
     if (currentToken) {
         tokens.push({ type: currentType!, value: currentToken, raw: currentTokenRaw });
-      }
+    }
 
     return tokens;
 }
