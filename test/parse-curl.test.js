@@ -1,4 +1,4 @@
-const { parseCurlCommand } = require("../src")
+const { parseCurlCommand } = require("../dist")
 const assert = require('assert')
 
 btoa = s =>  Buffer.from(s).toString('base64')
