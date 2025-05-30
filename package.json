@@ -1,6 +1,6 @@
 {
   "name": "curl-parser-ts",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "package to parse curl commands and return method, url, data, params",
   "main": "dist/index.js",
   "module": "dist/esm/index.esm.js",
