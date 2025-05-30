@@ -673,6 +673,40 @@ cases.push({
   }
 })
 
+cases.push({
+  input: `
+  curl --location 'https://qa.piramalfinance.com/api/cds/v1/decision' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: oaXQhEG7Vbs26sMyr71eRNaaarxuQ9mNl4w-kFHcfLqx9HchOJwBh2Eu8Jd8U8RDrD2mXBSoH_WSn7bpU9tlQQ' \
+--header 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36' \
+--data '{
+
+    "leadId": "XPLBSLIV000030F"
+
+}'
+  `,
+  output: {
+    method: "POST",
+    url: "https://qa.piramalfinance.com/api/cds/v1/decision",
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': "oaXQhEG7Vbs26sMyr71eRNaaarxuQ9mNl4w-kFHcfLqx9HchOJwBh2Eu8Jd8U8RDrD2mXBSoH_WSn7bpU9tlQQ",
+      'User-Agent': "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+    },
+    query: {},
+    data: "{\n\n    \"leadId\": \"XPLBSLIV000030F\"\n\n}",
+    auth: null,
+    cookies: {},
+    timeout: null,
+    proxy: null,
+    followRedirects: true,
+    insecure: false,
+    compressed: false,
+    formData: null,
+    multipartFormData: null
+  }
+})
+
 cases.forEach(function(c){
   const out = parseCurlCommand(c.input)
 

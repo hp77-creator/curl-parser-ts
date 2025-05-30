@@ -54,23 +54,27 @@ function parseCurlCommand(curlCommand: string): CurlParseResult {
   let formDataEntries: [string, string][] | null = null;
   let urlFound = false;
 
-  // First try to find URL after specific flags
-  for (let i = 0; i < tokens.length - 2; i++) {
+  // First try to find URL after --location or -L flags
+  for (let i = 0; i < tokens.length - 1; i++) {
     const token = tokens[i];
     const nextToken = tokens[i + 1];
-    const urlToken = tokens[i + 2];
     
     if (token.type === 'OPTION' && 
-        (token.value === '--request' || token.value === '-X' || token.value === '--location' || token.value === '-L') && 
-        nextToken && nextToken.type === 'ARGUMENT') {
+        (token.value === '--location' || token.value === '-L')) {
       
-      if (urlToken && (urlToken.type === 'URL' || 
-          (urlToken.type === 'ARGUMENT' && 
-           (URL_HTTP_REGEX.test(urlToken.value) || URL_DOMAIN_REGEX.test(urlToken.value))))) {
-        result.url = urlToken.value;
-        urlFound = true;
-        break;
+      // Find the next argument that looks like a URL
+      for (let j = i + 1; j < tokens.length; j++) {
+        const possibleUrlToken = tokens[j];
+        if (possibleUrlToken.type === 'URL' || 
+            (possibleUrlToken.type === 'ARGUMENT' && 
+             (URL_HTTP_REGEX.test(possibleUrlToken.value) || URL_DOMAIN_REGEX.test(possibleUrlToken.value)))) {
+          result.url = possibleUrlToken.value;
+          urlFound = true;
+          break;
+        }
       }
+      
+      if (urlFound) break;
     }
   }
 
@@ -264,6 +268,8 @@ function parseCurlCommand(curlCommand: string): CurlParseResult {
   if (dataValues && dataValues.length > 0) {
     result.data = dataValues.join('&');
     
+    // We keep all data as strings, including JSON, for backward compatibility
+    // Users can parse JSON themselves if needed
     if (formDataEntries && formDataEntries.length > 0 && 
         result.headers[CONTENT_TYPE] === 'application/x-www-form-urlencoded') {
       result.formData = Object.create(null) as Record<string, string>;
