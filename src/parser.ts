@@ -142,12 +142,26 @@ function parseCurlCommand(curlCommand: string): CurlParseResult {
       else if (tokenValue in DATA_FLAG_CONTENT_TYPES) {
         if (nextToken) {
           const defaultContentType = DATA_FLAG_CONTENT_TYPES[tokenValue];
-          // Only set Content-Type if not already set by -H flag
-          if (!result.headers[CONTENT_TYPE]) {
+          
+          // Check for Content-Type header with case-insensitive match
+          let hasContentTypeHeader = false;
+          let existingContentType = '';
+          
+          // Look for any variation of content-type header
+          for (const headerName in result.headers) {
+            if (headerName.toLowerCase() === 'content-type') {
+              hasContentTypeHeader = true;
+              existingContentType = result.headers[headerName];
+              break;
+            }
+          }
+          
+          // Only set Content-Type if no content-type header exists
+          if (!hasContentTypeHeader) {
             result.headers[CONTENT_TYPE] = defaultContentType;
           }
           
-          const contentType = result.headers[CONTENT_TYPE];
+          const contentType = hasContentTypeHeader ? existingContentType : result.headers[CONTENT_TYPE];
           
           if (contentType === 'multipart/form-data') {
             if (!result.multipartFormData) {

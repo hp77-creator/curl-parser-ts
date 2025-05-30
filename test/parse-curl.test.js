@@ -675,7 +675,7 @@ cases.push({
 
 cases.push({
   input: `
-  curl --location 'https://qa.piramalfinance.com/api/cds/v1/decision' \
+  curl --location 'https://qance.com/decision' \
 --header 'Content-Type: application/json' \
 --header 'Authorization: oaXQhEG7Vbs26sMyr71eRNaaarxuQ9mNl4w-kFHcfLqx9HchOJwBh2Eu8Jd8U8RDrD2mXBSoH_WSn7bpU9tlQQ' \
 --header 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36' \
@@ -687,7 +687,7 @@ cases.push({
   `,
   output: {
     method: "POST",
-    url: "https://qa.piramalfinance.com/api/cds/v1/decision",
+    url: "https://qance.com/decision",
     headers: {
       'Content-Type': 'application/json',
       'Authorization': "oaXQhEG7Vbs26sMyr71eRNaaarxuQ9mNl4w-kFHcfLqx9HchOJwBh2Eu8Jd8U8RDrD2mXBSoH_WSn7bpU9tlQQ",
@@ -705,6 +705,46 @@ cases.push({
     formData: null,
     multipartFormData: null
   }
+})
+
+cases.push({
+  input: `
+  curl --location 'https://asit.com/sso' \
+--header 'apikey: application/json' \
+--header 'content-type: application/json' \
+--header 'environment: QA' \
+--data-raw '{
+    "userName": "sushant.deshmukh2@piramal.com",
+    "source": "VERIFICATION_PLATFORM_LEGAL_TECH",
+    "password": "June@12345",
+    "verificationField": "EMAIL"
+}'
+  `,
+  output: {
+    method: "POST",
+    url: "https://asit.com/sso",
+    headers: {
+      'apikey': 'application/json',
+      'content-type' : 'application/json',
+      'environment' : 'QA'
+    },
+    query: {},
+    data: `{
+    "userName": "sushant.deshmukh2@piramal.com",
+    "source": "VERIFICATION_PLATFORM_LEGAL_TECH",
+    "password": "June@12345",
+    "verificationField": "EMAIL"
+}`,
+    auth: null,
+    cookies: {},
+    timeout: null,
+    proxy: null,
+    followRedirects: true,
+    insecure: false,
+    compressed: false,
+    formData: null,
+    multipartFormData: null
+  } 
 })
 
 cases.forEach(function(c){
