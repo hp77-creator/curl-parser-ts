@@ -17,9 +17,9 @@
     "build:esm": "tsc -p tsconfig.esm.json",
     "test": "node test/parse-curl.test.js",
     "prepublishOnly": "npm run build",
-    "benchmark": "node test/benchmark.js",
-    "memory-benchmark": "node --expose-gc test/memory-benchmark.js",
-    "feature-comparison": "node test/feature-comparison.js",
+    "benchmark": "npm install parse-curl && node test/benchmark/benchmark.js",
+    "memory-benchmark": "node --expose-gc test/benchmark/memory-benchmark.js",
+    "feature-comparison": "npm install parse-curl && node test/benchmark/feature-comparison.js",
     "bundle-size": "npx esbuild src/index.ts --bundle --outfile=dist/bundle.js --format=esm && du -h dist/bundle.js && gzip -c dist/bundle.js | wc -c",
     "size": "size-limit"
   },
